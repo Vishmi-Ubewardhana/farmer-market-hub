@@ -1,13 +1,37 @@
 const multer = require('multer');
+const fs = require('fs');
 const path = require('path');
+
+const uploadDir = path.join(__dirname, '../../uploads');
+
+const ensureUploadDir = () => {
+  fs.mkdirSync(uploadDir, { recursive: true });
+};
+
+const safeOriginalName = (name = '') => {
+  const ext = path.extname(name).toLowerCase();
+  const base = path
+    .basename(name, ext)
+    .replace(/[^a-z0-9_-]/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80);
+
+  return `${base || 'stock'}${ext || '.jpg'}`;
+};
 
 // Storage config
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../../uploads/'));
+    try {
+      ensureUploadDir();
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(new Error('Image upload folder is not writable. Check server uploads permissions.'));
+    }
   },
   filename: function (req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    cb(null, `${Date.now()}-${safeOriginalName(file.originalname)}`);
   }
 });
 

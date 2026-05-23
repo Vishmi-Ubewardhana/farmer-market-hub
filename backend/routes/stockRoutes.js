@@ -30,6 +30,12 @@ const handleUpload = (req, res, next) => {
       return res.status(400).json({ message: 'Image size must be 2MB or less.' });
     }
 
+    if (error.code === 'EPERM' || error.code === 'EACCES') {
+      return res.status(500).json({
+        message: 'Image upload folder is not writable. Check server uploads permissions.'
+      });
+    }
+
     return res.status(400).json({ message: error.message || 'Image upload failed.' });
   });
 };

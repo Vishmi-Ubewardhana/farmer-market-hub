@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
 // Load env vars
 dotenv.config();
@@ -151,12 +152,30 @@ if (require.main === module) {
         console.error('SRV DNS lookup failed. Your machine may not be able to resolve Atlas SRV records.');
         console.error('Use the standard mongodb:// replica set URI from Atlas instead of mongodb+srv://.');
       }
-      process.exit(1);
+
+      const allowMemoryFallback =
+        process.env.NODE_ENV !== 'production' &&
+        process.env.DISABLE_MEMORY_DB_FALLBACK !== 'true';
+
+      if (!allowMemoryFallback) {
+        process.exit(1);
+      }
+
+      console.warn('Atlas connection failed. Starting local in-memory MongoDB for development.');
+      console.warn('Data created in this fallback database is temporary and resets when the server stops.');
+
+      const mongoServer = await MongoMemoryServer.create();
+      await mongoose.connect(mongoServer.getUri(), {
+        family: 4,
+        serverSelectionTimeoutMS: 30000,
+      });
+      console.log('MongoDB connected using in-memory fallback');
+      return mongoServer;
     }
   };
 
 connectDB()
-    .then(async () => {
+    .then(async (mongoServer) => {
       // Seed users on first connection
       const User = require('./models/User');
       const bcrypt = require('bcryptjs');
@@ -258,6 +277,17 @@ connectDB()
       const server = app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
       });
+      const shutdown = async () => {
+        server.close(async () => {
+          await mongoose.disconnect();
+          if (mongoServer) {
+            await mongoServer.stop();
+          }
+          process.exit(0);
+        });
+      };
+      process.on('SIGINT', shutdown);
+      process.on('SIGTERM', shutdown);
       server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
           console.error(`\n❌ Port ${PORT} is already in use.`);

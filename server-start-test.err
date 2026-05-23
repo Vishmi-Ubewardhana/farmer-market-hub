@@ -1,0 +1,5 @@
+
+❌ Port 5002 is already in use.
+   Free it: netstat -ano | findstr ":5002"  then  taskkill /PID <pid> /F
+   Dev API URL must match frontend/.env, for example EXPO_PUBLIC_API_URL=http://<your-ip>:5002/api.
+

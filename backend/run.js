@@ -29,6 +29,14 @@ const apiLimiter = rateLimit({
 app.use('/api', apiLimiter);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Farmer Market Hub API is running',
+    version: '1.0.0'
+  });
+});
+
 const authRoutes = require('./routes/authRoutes');
 const stockRoutes = require('./routes/stockRoutes');
 const marketRoutes = require('./routes/marketRoutes');

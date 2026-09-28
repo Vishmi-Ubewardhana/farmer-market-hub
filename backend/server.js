@@ -26,6 +26,7 @@ app.use(helmet());
 app.use(express.json());
 app.use(cors());
 
+
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
 
@@ -43,6 +44,15 @@ const apiLimiter = rateLimit({
 
 // Apply rate limiting to all /api routes
 app.use('/api', apiLimiter);
+
+// Root / health check endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Farmer Market Hub API is running',
+    version: '1.0.0'
+  });
+});
 
 app.get('/', (req, res) => {
   res.status(200).json({
